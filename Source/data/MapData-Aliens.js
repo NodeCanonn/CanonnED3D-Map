@@ -85,7 +85,14 @@ var canonnEd3d_guardians = {
                     name: "Thargoid Suface Sites",
                     color: '22ff22'
                 },
+            },
+            "Human": {
+                "901": {
+                    name: "Populated Systems",
+                    colour: "ffc0cb"
+                }
             }
+
 
         },
         systems: []
@@ -108,6 +115,20 @@ var canonnEd3d_guardians = {
 
     },
 
+    stationData: [],
+    parseStations: function (url, resolvePromise) {
+        let fetchDataFromApi = async (url, resolvePromise) => {
+            let response = await fetch(url);
+            let result = await response.json();
+            canonnEd3d_guardians.stationData = result
+            resolvePromise();
+            return result;
+        }
+        fetchDataFromApi(url, resolvePromise)
+
+        //console.log(data)
+    },
+
     gCloudData: [],
 
     parseData: function (url, resolvePromise) {
@@ -123,6 +144,38 @@ var canonnEd3d_guardians = {
 
         //console.log(data)
 
+    },
+    formatStations: function (systems) {
+
+        systems.forEach(function (system) {
+
+            poiSite = []
+            poiSite['cat'] = ['801'];
+
+            poiSite['name'] = system.name
+
+            stations = system.stations.split(',')
+
+            infoText = "<div>Stations</div>"
+
+            stations.forEach(function (station) {
+                infoText += "&nbsp;" + station + "<br>"
+            });
+            poiSite['infos'] = infoText
+            poiSite['coords'] = {
+                x: parseFloat(system.pos_x),
+                y: parseFloat(system.pos_y),
+                z: parseFloat(system.pos_z),
+            };
+
+            a = poiSite['coords']
+
+            canonnEd3d_guardians.systemsData.systems.push(poiSite);
+
+
+
+
+        });
     },
     formatSites: async function (data, resolvePromise) {
         sites = await go(data);
@@ -173,8 +226,15 @@ var canonnEd3d_guardians = {
         var p2 = new Promise(function (resolve, reject) {
             canonnEd3d_guardians.parseData('https://us-central1-canonn-api-236217.cloudfunctions.net/get_gr_data', resolve);
         });
-        Promise.all([p1, p2]).then(function () {
+
+        var p3 = new Promise(function (resolve, reject) {
+            canonnEd3d_guardians.parseStations('data/json_stations.json', resolve)
+            console.log("getting station data")
+        });
+
+        Promise.all([p1, p2, p3]).then(function () {
             canonnEd3d_guardians.formatUnknown(canonnEd3d_guardians.gCloudData)
+            canonnEd3d_guardians.formatStations(canonnEd3d_guardians.stationData)
             document.getElementById("loading").style.display = "none";
             Ed3d.init({
                 container: 'edmap',
